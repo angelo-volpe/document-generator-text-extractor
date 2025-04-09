@@ -168,3 +168,7 @@ models
 
 # mac os
 .DS_Store
+
+# MLFlow
+mlartifacts
+mlruns
