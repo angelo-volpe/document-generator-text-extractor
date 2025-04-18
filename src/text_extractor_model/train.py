@@ -19,8 +19,6 @@ def train_model(model, train_loader, val_loader, num_epochs=10, learning_rate=0.
     
     train_losses = []
     val_losses = []
-
-    mlflow.set_tracking_uri("http://localhost:5000")  # Set your MLflow tracking URI
     
     with mlflow.start_run():
         params = {
