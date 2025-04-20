@@ -1,4 +1,6 @@
 import matplotlib.pyplot as plt
+import cv2
+import numpy as np
 import torch
 from torchvision.utils import draw_bounding_boxes, draw_segmentation_masks
 from torchvision import tv_tensors
@@ -49,3 +51,40 @@ def plot(imgs, row_title=None, **imshow_kwargs):
             axs[row_idx, 0].set(ylabel=row_title[row_idx])
 
     plt.tight_layout()
+
+
+def align_to_template(image, template):
+    image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    template_gray = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
+
+    orb = cv2.SIFT_create(500)
+    keypoints1, descriptors1 = orb.detectAndCompute(image_gray, None)
+    keypoints2, descriptors2 = orb.detectAndCompute(template_gray, None)
+
+    # Match features.
+    matcher = cv2.DescriptorMatcher_create(cv2.DESCRIPTOR_MATCHER_BRUTEFORCE_SL2)
+    matches = matcher.match(descriptors1, descriptors2, None)
+
+    # Sort matches by score
+    matches = sorted(matches, key=lambda x: x.distance, reverse=False)
+
+    # Remove not so good matches
+    num_good_matches = int(len(matches) * 0.15)
+    matches = matches[:num_good_matches]
+
+    # Extract location of good matches
+    points1 = np.zeros((len(matches), 2), dtype=np.float32)
+    points2 = np.zeros((len(matches), 2), dtype=np.float32)
+
+    for i, match in enumerate(matches):
+        points1[i, :] = keypoints1[match.queryIdx].pt
+        points2[i, :] = keypoints2[match.trainIdx].pt
+
+    # Find homography
+    h, _ = cv2.findHomography(points1, points2, cv2.RANSAC)
+
+    # Use homography
+    height, width = template_gray.shape
+    registered_image = cv2.warpPerspective(image, h, (width, height))
+
+    return registered_image
