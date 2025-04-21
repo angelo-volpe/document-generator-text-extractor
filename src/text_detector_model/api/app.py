@@ -59,7 +59,7 @@ def predict():
                                                     int(x[1] * scale_y)-dilatation,
                                                     int(x[2] * scale_x)+dilatation,
                                                     int(x[3] * scale_y)+dilatation])
-
+    print(f"detected {len(df)} boxes")
     # predict handwritings with TrOcR
     print("Run recognition")
     predicted_text = []
@@ -73,8 +73,10 @@ def predict():
 
     df["predicted_text"] = predicted_text
     df["text_score"] = text_score
+
+    predictions_dict = df[["original_box", "class", "score", "predicted_text", "text_score"]].to_dict(orient="records")
    
-    return flask.jsonify({"predictions": df[["original_box", "class", "score", "predicted_text", "text_score"]].to_dict()})
+    return flask.jsonify({"predictions": predictions_dict})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)
