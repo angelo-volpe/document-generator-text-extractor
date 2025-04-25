@@ -17,9 +17,11 @@ app = flask.Flask(__name__)
 # Configure logger
 app.logger.setLevel(logging.INFO)
 handler = logging.FileHandler("app.log")
-handler.setFormatter(logging.Formatter(
-    '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
-))
+handler.setFormatter(
+    logging.Formatter(
+        "%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]"
+    )
+)
 app.logger.addHandler(handler)
 
 # Load Faster R-CNN model from MLflow
@@ -28,11 +30,14 @@ mlflow_run_id = os.environ.get("MLFLOW_RUN_ID")
 mlflow_model_name = os.environ.get("MLFLOW_MODEL_NAME")
 model_uri = f"runs:/{mlflow_run_id}/{mlflow_model_name}"
 detection_model = mlflow.pytorch.load_model(model_uri)
-detection_model.eval() 
+detection_model.eval()
 
 # load PaddleOCR model
 app.logger.info("Loading PaddleOCR model")
-recognition_model = PaddleOCR(use_angle_cls=True, lang='en', det=False, rec=True, use_gpu=False)
+recognition_model = PaddleOCR(
+    use_angle_cls=True, lang="en", det=False, rec=True, use_gpu=False
+)
+
 
 @app.route("/predict", methods=["POST"])
 def predict():
@@ -41,18 +46,20 @@ def predict():
     original_image = Image.open(io.BytesIO(img_data))
     img = tv_tensors.Image(original_image)
     new_height, new_width = 800, 600
-    
-    transform = T.Compose([
-        T.ToDtype(torch.float, scale=True),
-        T.Resize((new_height, new_width)),
-        T.ToPureTensor()
-    ])
+
+    transform = T.Compose(
+        [
+            T.ToDtype(torch.float, scale=True),
+            T.Resize((new_height, new_width)),
+            T.ToPureTensor(),
+        ]
+    )
 
     app.logger.info("Preprocess image")
     img = transform(img)
-    
+
     app.logger.info("Run detection")
-     # Get predictions
+    # Get predictions
     with torch.no_grad():
         predictions = detection_model([img])[0]
 
@@ -67,10 +74,14 @@ def predict():
     scale_x = original_image.width / new_width
 
     dilatation = 5
-    df["original_box"] = df["box"].apply(lambda x: [int(x[0] * scale_x)-dilatation, 
-                                                    int(x[1] * scale_y)-dilatation,
-                                                    int(x[2] * scale_x)+dilatation,
-                                                    int(x[3] * scale_y)+dilatation])
+    df["original_box"] = df["box"].apply(
+        lambda x: [
+            int(x[0] * scale_x) - dilatation,
+            int(x[1] * scale_y) - dilatation,
+            int(x[2] * scale_x) + dilatation,
+            int(x[3] * scale_y) + dilatation,
+        ]
+    )
     app.logger.info(f"detected {len(df)} boxes")
 
     app.logger.info("Run recognition")
@@ -79,16 +90,21 @@ def predict():
     for box in df["original_box"]:
         box_image = original_image.crop(box)
 
-        predicted_text_box, text_score_box = recognition_model.ocr(np.array(box_image), det=False, rec=True)[0][0]
+        predicted_text_box, text_score_box = recognition_model.ocr(
+            np.array(box_image), det=False, rec=True
+        )[0][0]
         predicted_text.append(predicted_text_box)
         text_score.append(text_score_box)
 
     df["predicted_text"] = predicted_text
     df["text_score"] = text_score
 
-    predictions_dict = df[["original_box", "class", "score", "predicted_text", "text_score"]].to_dict(orient="records")
-   
+    predictions_dict = df[
+        ["original_box", "class", "score", "predicted_text", "text_score"]
+    ].to_dict(orient="records")
+
     return flask.jsonify({"predictions": predictions_dict})
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)

@@ -9,11 +9,13 @@ def box_to_poly(box):
     return Polygon([Point(x1, y1), Point(x1, y2), Point(x2, y2), Point(x2, y1)])
 
 
-def evaluate_model(model, data_loader, device, prediction_threshold=0.5, iou_thresold=0.95):
+def evaluate_model(
+    model, data_loader, device, prediction_threshold=0.5, iou_thresold=0.95
+):
     print("Evaluating model")
     model = model.to(device)
     model.eval()
-    
+
     # run predictions
     all_predictions = []
     all_targets = []
@@ -33,22 +35,39 @@ def evaluate_model(model, data_loader, device, prediction_threshold=0.5, iou_thr
         prediction["labels"] = prediction["labels"][prediction_mask]
         prediction["scores"] = prediction["scores"][prediction_mask]
 
-        prediction_results = pd.DataFrame(zip(prediction["scores"].cpu().numpy(), 
-                                                prediction["boxes"].cpu().numpy(), 
-                                                prediction["labels"].cpu().numpy()), 
-                                                columns=["score", "predicted_box", "class"])
-        # if multiple predictions for one class take the one with highest score, 
+        prediction_results = pd.DataFrame(
+            zip(
+                prediction["scores"].cpu().numpy(),
+                prediction["boxes"].cpu().numpy(),
+                prediction["labels"].cpu().numpy(),
+            ),
+            columns=["score", "predicted_box", "class"],
+        )
+        # if multiple predictions for one class take the one with highest score,
         # knowing that we have only one item per class by definition
-        prediction_results = prediction_results.sort_values(by="class", ascending=False).drop_duplicates(subset=["class"])
+        prediction_results = prediction_results.sort_values(
+            by="class", ascending=False
+        ).drop_duplicates(subset=["class"])
 
-        targets_df = pd.DataFrame(zip(pred_targets["boxes"].cpu().numpy(), 
-                                      pred_targets["labels"].cpu().numpy()), 
-                                      columns=["target_box", "class"])
+        targets_df = pd.DataFrame(
+            zip(
+                pred_targets["boxes"].cpu().numpy(),
+                pred_targets["labels"].cpu().numpy(),
+            ),
+            columns=["target_box", "class"],
+        )
         targets_df["image_id"] = pred_targets["image_id"]
-        prediction_results = targets_df.merge(prediction_results, on="class", how="left")
+        prediction_results = targets_df.merge(
+            prediction_results, on="class", how="left"
+        )
 
-        false_negatives_df = pd.concat([false_negatives_df, prediction_results[prediction_results["score"].isnull()]])
-        
+        false_negatives_df = pd.concat(
+            [
+                false_negatives_df,
+                prediction_results[prediction_results["score"].isnull()],
+            ]
+        )
+
         positives = prediction_results[~prediction_results["score"].isnull()].copy()
 
         if len(positives) == 0:
@@ -59,10 +78,14 @@ def evaluate_model(model, data_loader, device, prediction_threshold=0.5, iou_thr
         positives["target_poly"] = positives["target_box"].apply(box_to_poly)
 
         # calculate Intersect over Union
-        positives["intersection_area"] = positives[["target_poly", "predicted_poly"]] \
-            .apply(lambda x: x["target_poly"].intersection(x["predicted_poly"]).area, axis=1)
-        positives["union_area"] = positives[["target_poly", "predicted_poly"]] \
-            .apply(lambda x: x["target_poly"].union(x["predicted_poly"]).area, axis=1)
+        positives["intersection_area"] = positives[
+            ["target_poly", "predicted_poly"]
+        ].apply(
+            lambda x: x["target_poly"].intersection(x["predicted_poly"]).area, axis=1
+        )
+        positives["union_area"] = positives[["target_poly", "predicted_poly"]].apply(
+            lambda x: x["target_poly"].union(x["predicted_poly"]).area, axis=1
+        )
         positives["IoU"] = positives["intersection_area"] / positives["union_area"]
 
         positives_df = pd.concat([positives_df, positives])
