@@ -5,6 +5,7 @@ import os
 from PIL import Image
 import base64
 import io
+import logging
 import numpy as np
 import pandas as pd
 from torchvision.transforms import v2 as T
@@ -13,13 +14,24 @@ from torchvision import tv_tensors
 
 app = flask.Flask(__name__)
 
-# Load the model from MLflow
+# Configure logger
+app.logger.setLevel(logging.INFO)
+handler = logging.FileHandler("app.log")
+handler.setFormatter(logging.Formatter(
+    '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+))
+app.logger.addHandler(handler)
+
+# Load Faster R-CNN model from MLflow
+app.logger.info("Loading Faster R-CNN model from MLflow")
 mlflow_run_id = os.environ.get("MLFLOW_RUN_ID")
 mlflow_model_name = os.environ.get("MLFLOW_MODEL_NAME")
 model_uri = f"runs:/{mlflow_run_id}/{mlflow_model_name}"
 detection_model = mlflow.pytorch.load_model(model_uri)
 detection_model.eval() 
 
+# load PaddleOCR model
+app.logger.info("Loading PaddleOCR model")
 recognition_model = PaddleOCR(use_angle_cls=True, lang='en', det=False, rec=True, use_gpu=False)
 
 @app.route("/predict", methods=["POST"])
@@ -36,10 +48,10 @@ def predict():
         T.ToPureTensor()
     ])
 
-    print("Preprocess image")
+    app.logger.info("Preprocess image")
     img = transform(img)
     
-    print("Run detection")
+    app.logger.info("Run detection")
      # Get predictions
     with torch.no_grad():
         predictions = detection_model([img])[0]
@@ -59,9 +71,9 @@ def predict():
                                                     int(x[1] * scale_y)-dilatation,
                                                     int(x[2] * scale_x)+dilatation,
                                                     int(x[3] * scale_y)+dilatation])
-    print(f"detected {len(df)} boxes")
-    # predict handwritings with TrOcR
-    print("Run recognition")
+    app.logger.info(f"detected {len(df)} boxes")
+
+    app.logger.info("Run recognition")
     predicted_text = []
     text_score = []
     for box in df["original_box"]:

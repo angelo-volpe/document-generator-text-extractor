@@ -40,9 +40,9 @@ export MLFLOW_MODEL_NAME=<model_name>
 python app.py
 ```
 
-Using Docker (Not working yet)
+Using Docker
+
 ```bash
 cd ./src/text_detector_model/api
-docker build -t text-detector-model-api .
-docker run -p 5001:5001 -e MLFLOW_RUN_ID=<run_id> -e MLFLOW_MODEL_NAME=<model_name> text-detector-model-api
+docker compose up
 ```

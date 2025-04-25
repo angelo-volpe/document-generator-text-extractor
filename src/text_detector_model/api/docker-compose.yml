@@ -3,7 +3,6 @@ services:
     build: .
     command: python app.py
     ports:
-      - "5000:5000"
-    environment:
-      - mlflow_run_id: "067a466a44b64fef9d567f212d0bc048"
-      - mlflow_model_name: "model_epoch_29"
+      - "5001:5001"
+    env_file:
+      - ./.env.dev

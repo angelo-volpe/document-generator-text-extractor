@@ -2,6 +2,9 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y \
+    build-essential libgl1 libglib2.0-0 wget
+
 # Install dependencies
 COPY requirements.txt .
 RUN pip install -r requirements.txt
@@ -9,11 +12,8 @@ RUN pip install -r requirements.txt
 # Copy the application code
 COPY app.py .
 
-# Set environment variables
-ENV MLFLOW_TRACKING_URI=http://localhost:5000
-
 # Expose the port
 EXPOSE 5001
 
 # Run the application
-CMD ["python", "app.py"]
+# CMD ["python", "app.py"]
