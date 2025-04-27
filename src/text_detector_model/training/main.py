@@ -36,17 +36,25 @@ if __name__ == "__main__":
     mlflow.set_experiment(f"text_detector_model_{args.document_id}")
 
     # Define transformations for input images
-    transform = T.Compose([
-        T.ToDtype(torch.float, scale=True),
-        T.Resize((800, 600)),
-        T.ToPureTensor()
-    ])
+    transform = T.Compose(
+        [T.ToDtype(torch.float, scale=True), T.Resize((800, 600)), T.ToPureTensor()]
+    )
 
     # Load data
-    documents_dir = Path(args.input_base_path) / f"document_{args.document_id}" / args.data_version
+    documents_dir = (
+        Path(args.input_base_path) / f"document_{args.document_id}" / args.data_version
+    )
 
-    train_dataset = DocumentDataset(images_dir=documents_dir / "train", annotation_file=documents_dir / "train_labels.json", transform=transform)
-    test_val_dataset = DocumentDataset(images_dir=documents_dir / "test", annotation_file=documents_dir / "test_labels.json", transform=transform)
+    train_dataset = DocumentDataset(
+        images_dir=documents_dir / "train",
+        annotation_file=documents_dir / "train_labels.json",
+        transform=transform,
+    )
+    test_val_dataset = DocumentDataset(
+        images_dir=documents_dir / "test",
+        annotation_file=documents_dir / "test_labels.json",
+        transform=transform,
+    )
 
     # Split into val/test
     val_size = int(0.5 * len(test_val_dataset))
@@ -60,15 +68,34 @@ if __name__ == "__main__":
         return tuple(zip(*batch))
 
     # Create data loaders
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0, collate_fn=collate_fn)
-    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=0, collate_fn=collate_fn)
-    test_loader = DataLoader(test_dataset, batch_size=5, shuffle=False, num_workers=0, collate_fn=collate_fn)
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=args.batch_size,
+        shuffle=True,
+        num_workers=0,
+        collate_fn=collate_fn,
+    )
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=0,
+        collate_fn=collate_fn,
+    )
+    test_loader = DataLoader(
+        test_dataset, batch_size=5, shuffle=False, num_workers=0, collate_fn=collate_fn
+    )
 
     # Initialize model
     model = get_faster_rcnn_model(len(train_dataset.classes) + 1)
 
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=args.learning_rate, momentum=args.momentum, weight_decay=args.weight_decay)
+    optimizer = torch.optim.SGD(
+        params,
+        lr=args.learning_rate,
+        momentum=args.momentum,
+        weight_decay=args.weight_decay,
+    )
 
     # Train the model
     logger.info("Starting training")
@@ -80,19 +107,23 @@ if __name__ == "__main__":
             "data_version": args.data_version,
             "learning_rate": args.learning_rate,
             "momentum": args.momentum,
-            "weight_decay": args.weight_decay
+            "weight_decay": args.weight_decay,
         }
         mlflow.log_params(params)
 
-        model = train_model(model=model, 
-                            train_data_loader=train_loader, 
-                            val_data_loader=val_loader, 
-                            optimizer=optimizer, 
-                            device=args.device, 
-                            num_epochs=args.num_epochs)
+        model = train_model(
+            model=model,
+            train_data_loader=train_loader,
+            val_data_loader=val_loader,
+            optimizer=optimizer,
+            device=args.device,
+            num_epochs=args.num_epochs,
+        )
 
     # Evaluate the model
     logger.info("Evaluating model on test dataset")
-    [_, _], [precision, recall] = evaluate_model(model, val_loader, args.device, prediction_threshold=0.5, iou_thresold=0.90)
+    [_, _], [precision, recall] = evaluate_model(
+        model, val_loader, args.device, prediction_threshold=0.5, iou_thresold=0.90
+    )
 
     logger.info(f"Precision: {precision}, Recall: {recall}")
