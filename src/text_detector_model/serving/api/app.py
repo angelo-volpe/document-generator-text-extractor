@@ -34,6 +34,7 @@ detection_model.eval()
 
 # load PaddleOCR model
 app.logger.info("Loading PaddleOCR model")
+# TODO try to download the model during docker build and reference it here
 recognition_model = PaddleOCR(
     use_angle_cls=True, lang="en", det=False, rec=True, use_gpu=False
 )
