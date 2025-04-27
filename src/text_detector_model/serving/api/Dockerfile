@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -14,6 +14,3 @@ COPY app.py .
 
 # Expose the port
 EXPOSE 5001
-
-# Run the application
-# CMD ["python", "app.py"]

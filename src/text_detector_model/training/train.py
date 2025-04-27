@@ -1,7 +1,7 @@
 import mlflow
 import torch
 from tqdm import tqdm
-from text_detector_model.evaluation import evaluate_model
+from evaluation import evaluate_model
 
 
 def train_model(

@@ -1,0 +1,8 @@
+torch==2.6.0
+pillow==11.1.0
+torchvision==0.21.0
+matplotlib==3.10.1
+mlflow==2.21.2
+opencv-python==4.11.0.86
+tqdm==4.67.1
+shapely==2.1.0

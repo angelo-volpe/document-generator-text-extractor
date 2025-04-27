@@ -21,7 +21,7 @@ The model outputs the predicted boxes with the predicted class and a score
 ![Example Output](../../images/detector_output_example.png)
 
 ## Training
-For the training you can use the [TextDetectorModel](../../notebooks/TextDetectorModel.ipynb) notebook
+For interactive training you can use the [TextDetectorModel](../../notebooks/TextDetectorModel.ipynb) notebook
 
 in the firs part of the notebook you can specify parameters like:
 - `documents_dir`, path to the folder containing data, both images and annotatrions
@@ -30,10 +30,42 @@ in the firs part of the notebook you can specify parameters like:
 - `batch_size`, batch size for training
 - `device`, to use for training
 
-## Deploy
+Otherwise a job can be used calling the following script with parameters:
 
 ```bash
-cd ./src/text_detector_model/api
+cd ./src/text_detector_model/training
+export export MLFLOW_TRACKING_URI=http://localhost:5000 # change with your mlflow URI
+python main.py --document_id <document_id> --input_base_path <input_base_path> --data_version <data_version>
+```
+
+The job is also available via Docker
+```bash
+cd ./src/text_detector_model/training
+docker build . -t document-generator-text-detector:latest
+docker run --rm \
+           --mount type=bind,source=<local_data_path>,target=/app/data \
+           --name document-generator-text-detector \
+           --env-file .env.dev \
+           document-generator-text-detector:latest --document_id <document_id> --input_base_path <input_base_path> --data_version <data_version>
+```
+
+input data for training is expected to follow the structure below:
+
+    └── <input_base_path>
+        └── document_<document_id>
+            └── <data_version>
+                ├── train # folder containing train images
+                ├── test  # folder conatining test images
+                ├── train_labels.json
+                └── test_labels.json
+
+
+
+## Serving (API)
+Serving via API is ideal if you need to integrate ML model capabilities in an external application that requires prediction on single images with low latency
+
+```bash
+cd ./src/text_detector_model/serving/api
 export export MLFLOW_TRACKING_URI=http://localhost:5000 # change with your mlflow URI
 export MLFLOW_RUN_ID=<run_id>
 export MLFLOW_MODEL_NAME=<model_name>
@@ -43,6 +75,9 @@ python app.py
 Using Docker
 
 ```bash
-cd ./src/text_detector_model/api
+cd ./src/text_detector_model/serving/api
 docker compose up
 ```
+
+## Serving (Batch) (TODO)
+This is the ideal method in case you need to run predictions on a batch of images
