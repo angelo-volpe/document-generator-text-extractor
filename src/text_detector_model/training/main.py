@@ -16,7 +16,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--input_base_path", type=str, required=True)
     parser.add_argument("--document_id", type=str, required=True)
-    parser.add_argument("--data_version", type=str, required=True)
+    parser.add_argument("--data_version", type=str, required=False, default="latest")
     parser.add_argument("--batch_size", type=int, required=False, default=16)
     parser.add_argument("--num_epochs", type=int, required=False, default=10)
     parser.add_argument("--device", type=str, required=False, default="cpu")
@@ -40,10 +40,18 @@ if __name__ == "__main__":
         [T.ToDtype(torch.float, scale=True), T.Resize((800, 600)), T.ToPureTensor()]
     )
 
+    documents_dir = Path(args.input_base_path) / f"document_{args.document_id}"
+
+    if args.data_version == "latest":
+        # Get the latest version of the data
+        print(documents_dir)
+        data_versions = [d for d in os.listdir(documents_dir) if os.path.isdir(os.path.join(documents_dir, d))]
+        if not data_versions:
+            raise ValueError("No data versions found.")
+        args.data_version = max(data_versions)
+
     # Load data
-    documents_dir = (
-        Path(args.input_base_path) / f"document_{args.document_id}" / args.data_version
-    )
+    documents_dir = (documents_dir / args.data_version)
 
     train_dataset = DocumentDataset(
         images_dir=documents_dir / "train",

@@ -34,7 +34,7 @@ Otherwise a job can be used calling the following script with parameters:
 
 ```bash
 cd ./src/text_detector_model/training
-export export MLFLOW_TRACKING_URI=http://localhost:5000 # change with your mlflow URI
+export MLFLOW_TRACKING_URI=http://localhost:5000 # change with your mlflow URI
 python main.py --document_id <document_id> --input_base_path <input_base_path> --data_version <data_version>
 ```
 
