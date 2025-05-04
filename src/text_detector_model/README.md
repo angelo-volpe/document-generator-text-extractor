@@ -66,7 +66,7 @@ Serving via API is ideal if you need to integrate ML model capabilities in an ex
 
 ```bash
 cd ./src/text_detector_model/serving/api
-export export MLFLOW_TRACKING_URI=http://localhost:5000 # change with your mlflow URI
+export MLFLOW_TRACKING_URI=http://localhost:5000 # change with your mlflow URI
 export MLFLOW_RUN_ID=<run_id>
 export MLFLOW_MODEL_NAME=<model_name>
 python app.py
